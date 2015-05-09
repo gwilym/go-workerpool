@@ -32,7 +32,7 @@ func main() {
 
 	log.Println("Starting up with concurrency", concurrency, ". Press CTRL-C to quit.")
 
-	done := make(chan bool, 1)
+	done := make(chan struct{}, 1)
 	w := workerpool.NewFunctionWorkerpool(concurrency, printSleeper)
 	w.Start(done)
 	<-done

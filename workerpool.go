@@ -23,7 +23,7 @@ import (
 )
 
 type Workerpool interface {
-	Start(done chan bool)
+	Start(done chan struct{})
 	Stop()
 	CountWorkers() int32
 }
@@ -47,7 +47,7 @@ type FunctionWorkerpool struct {
 	running     bool
 }
 
-func (f *FunctionWorkerpool) Start(done chan bool) {
+func (f *FunctionWorkerpool) Start(done chan struct{}) {
 	if !f.running {
 		f.running = true
 		for i := int32(0); i < f.concurrency; i++ {
@@ -57,7 +57,7 @@ func (f *FunctionWorkerpool) Start(done chan bool) {
 		}
 		f.workerGroup.Wait()
 		f.running = false
-		done <- true
+		done <- struct{}{}
 	}
 }
 
@@ -65,7 +65,7 @@ func (f *FunctionWorkerpool) Stop() {
 	f.running = false
 }
 
-func (f *FunctionWorkerpool) CountWorkers() {
+func (f *FunctionWorkerpool) CountWorkers() int32 {
 	return atomic.LoadInt32(&f.workers)
 }
 
