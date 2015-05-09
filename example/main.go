@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import (
 	"log"
 	"math/rand"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/gwilym/go-workerpool"
@@ -28,14 +30,23 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, os.Interrupt)
+
 	concurrency := int32(4)
+	pool := workerpool.NewFunctionWorkerpool(concurrency, printSleeper)
 
-	log.Println("Starting up with concurrency", concurrency, ". Press CTRL-C to quit.")
+	log.Println("Starting up with concurrency", concurrency, ". Press CTRL-C or send SIGINT to quit.")
+	pool.Start()
 
-	done := make(chan struct{}, 1)
-	w := workerpool.NewFunctionWorkerpool(concurrency, printSleeper)
-	w.Start(done)
-	<-done
+	select {
+	case <-sigint:
+		log.Println("SIGINT received, stopping")
+		pool.Stop()
+		pool.Wait()
+	}
+
+	log.Println("Over and out")
 }
 
 // I sleep for a random time then randomly return true or false

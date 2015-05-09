@@ -2,7 +2,7 @@
 
 A simple, stoppable, concurrent worker pool interface including a function-calling implementation.
 
-You provide the workerpool with a buffered bool channel when started. Workers loop until stopped by calling `Stop`, which will prevent the next loop iteration. When all workers stop, `true` is sent over the channel.
+Once started with `Start`, workers loop until stopped by calling `Stop` or until they stop due to their own design, which will prevent the next loop iteration. `Wait` can be called to block until workers are stopped, but may block indefinitely unless `Stop` has been called.
 
 Specifically, the function-calling workerpool requires a `func() bool` worker. The worker will be looped by the pool until it either returns `false` or `Stop` is called on the pool.
 
@@ -15,4 +15,3 @@ I'm still kinda learning Go, so I'm writing little libraries as I figure things 
 ## Usage by Example
 
 See `example/main.go` for a working example.
-

@@ -23,8 +23,9 @@ import (
 )
 
 type Workerpool interface {
-	Start(done chan struct{})
+	Start()
 	Stop()
+	Wait()
 	CountWorkers() int32
 }
 
@@ -45,32 +46,40 @@ type FunctionWorkerpool struct {
 	workerGroup *sync.WaitGroup
 	function    WorkerFunction
 	running     bool
+	stopping    bool
 }
 
-func (f *FunctionWorkerpool) Start(done chan struct{}) {
+// Start begins the worker routines, if not already started.
+func (f *FunctionWorkerpool) Start() {
 	if !f.running {
 		f.running = true
+		f.stopping = false
 		for i := int32(0); i < f.concurrency; i++ {
 			f.workerGroup.Add(1)
 			atomic.AddInt32(&f.workers, 1)
 			go f.work()
 		}
-		f.workerGroup.Wait()
-		f.running = false
-		done <- struct{}{}
 	}
 }
 
+// Stop signals workers to stop, but returns immediately. Wait() should be used to wait for workers to stop.
 func (f *FunctionWorkerpool) Stop() {
+	f.stopping = true
+}
+
+// Wait blocks until all workers finish. Depending on the workers, this may block indefinitely unless Stop is called first.
+func (f *FunctionWorkerpool) Wait() {
+	f.workerGroup.Wait()
 	f.running = false
 }
 
+// CountWorkers returns a count of the currently active workers.
 func (f *FunctionWorkerpool) CountWorkers() int32 {
 	return atomic.LoadInt32(&f.workers)
 }
 
 func (f *FunctionWorkerpool) work() {
-	for f.running && f.function() {
+	for f.running && !f.stopping && f.function() {
 	}
 	atomic.AddInt32(&f.workers, -1)
 	f.workerGroup.Done()
